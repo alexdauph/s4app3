@@ -14,6 +14,7 @@ static volatile int Flag_1s = 0;
 
 void LCD_seconde(unsigned int seconde);
 extern void pmod_s();
+extern long module_s(int x, int y, int z);
 
 void __ISR(_TIMER_1_VECTOR, IPL2AUTO) Timer1ISR(void) 
 {  
@@ -40,15 +41,19 @@ void initialize_timer_interrupt(void) {
 void main() {
     LCD_Init();
     LED_Init();
+    ACL_Init();
     initialize_timer_interrupt();
-    int count = 0;
     PMODS_InitPin(1,1,0,0,0); // initialisation du JB1 (RD9))
+
+    int count = 0;
+    long module = 10;
     unsigned char pmodValue = 0;
+    unsigned int seconde = 0 ;
+
     macro_enable_interrupts();
     
     LCD_WriteStringAtPos("Heure : ", 0, 0);
-    unsigned int seconde = 0 ;
-
+   
     // Main loop
     while(1) {
         if(Flag_1s)                 // Flag d'interruption à chaque 1 ms
@@ -57,6 +62,7 @@ void main() {
             //pmodValue ^= 1;
             //PMODS_SetValue(1, 1, pmodValue);
             pmod_s();
+            module = module_s(1, 2, 3);
             Flag_1s = 0;            // Reset the flag to capture the next event
             if (++count >= 1000) 
             {
