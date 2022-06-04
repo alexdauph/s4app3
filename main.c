@@ -77,7 +77,7 @@ void main()
                 LED_ToggleValue(0);
                 // LCD_seconde(++seconde);
 
-                ACL_ReadAll(&acl_x, &acl_y, &acl_z);
+                ACL_ReadAll(&acl_x, &acl_y, &acl_z);                
                 module = module_s(acl_x, acl_y, acl_z);
                 LCD_acl(acl_x, acl_y, acl_z, module);
             }
@@ -98,13 +98,6 @@ void LCD_acl(int x, int y, int z, int module)
 {
     char buff[16] = {0};
 
-    /*if (x & 0x80000000)
-        x = (x * -1) | 0x000000800;
-    if (y & 0x80000000)
-        y = (y * -1) | 0x000000800;
-    if (z & 0x80000000)
-        z = (z * -1) | 0x000000800;*/
-
     LCD_int_intToString(buff, x, 3);
     LCD_WriteStringAtPos("x=", 0, 0);
     LCD_WriteStringAtPos(buff, 0, 2);
@@ -117,9 +110,9 @@ void LCD_acl(int x, int y, int z, int module)
     LCD_WriteStringAtPos("z:", 1, 0);
     LCD_WriteStringAtPos(buff, 1, 2);
 
-    LCD_int_intToString(buff, module, 6);
-    LCD_WriteStringAtPos("m:", 1, 8);
-    LCD_WriteStringAtPos(buff, 1, 10);
+    LCD_int_intToString(buff, module, 3);
+    LCD_WriteStringAtPos("m:", 1, 10);
+    LCD_WriteStringAtPos(buff, 1, 12);
 }
 
 void LCD_int_intToString(char *buff, int val, int len)
