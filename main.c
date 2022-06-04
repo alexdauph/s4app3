@@ -52,7 +52,7 @@ void main()
     PMODS_InitPin(1, 1, 0, 0, 0); // initialisation du JB1 (RD9))
 
     int count = 0;
-    int acl_x, acl_y, acl_z;
+    int acl_x, acl_y, acl_z, module;
     unsigned char pmodValue = 0;
     unsigned int seconde = 0;
 
@@ -68,9 +68,7 @@ void main()
             // pmodValue = PMODS_GetValue(1, 1);
             // pmodValue ^= 1;
             // PMODS_SetValue(1, 1, pmodValue);
-            pmod_s();
-            // module = module_s(1, 2, 3);
-            ACL_ReadAll(&acl_x, &acl_y, &acl_z);
+            // pmod_s();
 
             Flag_1s = 0; // Reset the flag to capture the next event
             if (++count >= 1000)
@@ -78,7 +76,10 @@ void main()
                 count = 0;
                 LED_ToggleValue(0);
                 // LCD_seconde(++seconde);
-                LCD_acl(acl_x, acl_y, acl_z, 0);
+
+                ACL_ReadAll(&acl_x, &acl_y, &acl_z);
+                module = module_s(acl_x, acl_y, acl_z);
+                LCD_acl(acl_x, acl_y, acl_z, module);
             }
         }
     }
@@ -95,40 +96,30 @@ void LCD_seconde(unsigned int seconde)
 
 void LCD_acl(int x, int y, int z, int module)
 {
-    char buff[5];
-    int i;
-    // TODO : clear disp
+    char buff[16] = {0};
+
+    /*if (x & 0x80000000)
+        x = (x * -1) | 0x000000800;
+    if (y & 0x80000000)
+        y = (y * -1) | 0x000000800;
+    if (z & 0x80000000)
+        z = (z * -1) | 0x000000800;*/
 
     LCD_int_intToString(buff, x, 3);
     LCD_WriteStringAtPos("x=", 0, 0);
     LCD_WriteStringAtPos(buff, 0, 2);
 
     LCD_int_intToString(buff, y, 3);
-    LCD_WriteStringAtPos("y=", 0, 11);
-    LCD_WriteStringAtPos(buff, 0, 13);
+    LCD_WriteStringAtPos("y:", 0, 10);
+    LCD_WriteStringAtPos(buff, 0, 12);
 
     LCD_int_intToString(buff, z, 3);
-    LCD_WriteStringAtPos("z=", 1, 0);
+    LCD_WriteStringAtPos("z:", 1, 0);
     LCD_WriteStringAtPos(buff, 1, 2);
 
-    LCD_int_intToString(buff, module, 4);
-    LCD_WriteStringAtPos("m=", 1, 10);
-    LCD_WriteStringAtPos(buff, 1, 12);
-    
-    // buff[0][0] = 'x';
-    // buff[0][2] = '=';
-    // buff[0][4] = ((x >> 8) & 0x0000000F);
-    // buff[0][5] = ((x >> 4) & 0x0000000F);
-    // buff[0][6] = ((x >> 0) & 0x0000000F);
-    //  buff[0][3] = '\0';
-
-    /*for (i = 0; i < 3; i++)
-    {
-        if (buff[0][i] < 10)
-            buff[0][i] += '0';
-        else
-            buff[0][i] += ('A' - 10);
-    }*/
+    LCD_int_intToString(buff, module, 6);
+    LCD_WriteStringAtPos("m:", 1, 8);
+    LCD_WriteStringAtPos(buff, 1, 10);
 }
 
 void LCD_int_intToString(char *buff, int val, int len)
@@ -150,14 +141,17 @@ void LCD_int_intToString(char *buff, int val, int len)
 void ACL_ReadAll(int *x, int *y, int *z)
 {
     char buff[6];
-    int i;
-    int xx, yy, zz;
 
-    // for (i = 0; i < 0; i++)
-    //{
     ACL_ReadRawValues(buff);
-    //}
+
     *x = ((buff[0] & 0xFF) << 4) | ((buff[1] & 0xF0) >> 4);
     *y = ((buff[2] & 0xFF) << 4) | ((buff[3] & 0xF0) >> 4);
     *z = ((buff[4] & 0xFF) << 4) | ((buff[5] & 0xF0) >> 4);
+
+    if (*x & 0x0800)
+        *x |= 0xFFFFF000;
+    if (*y & 0x0800)
+        *y |= 0xFFFFF000;
+    if (*z & 0x0800)
+        *z |= 0xFFFFF000;
 }

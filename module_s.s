@@ -21,8 +21,7 @@ module_s:			            # Étiquette de la fonction
     madd $a1, $a1               # Ajouter y^2
     madd $a2, $a2               # Ajouter z^2
 
-    # mfhi $t1
-    # mflo $t0
+    mflo $t0			# Copier x^2 + y^2 + z^2 dans $t0
 
     mfhi $v1
     mflo $v0
