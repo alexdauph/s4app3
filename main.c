@@ -12,7 +12,7 @@
 // Since the flag is changed within an interrupt, we need the keyword volatile.
 static volatile int Flag_1s = 0;
 
-void LCD_seconde(unsigned int seconde);
+void LCD_time(unsigned int seconde);
 void LCD_acl(int x, int y, int z, int module);
 void LCD_int_intToString(char *buff, int val, int len);
 void ACL_ReadAll(int *x, int *y, int *z);
@@ -48,16 +48,24 @@ void main()
     LCD_Init();
     LED_Init();
     ACL_Init();
+    AIC_Init();
+    SWT_Init();
+    SPIFLASH_Init();
+
     initialize_timer_interrupt();
     PMODS_InitPin(1, 1, 0, 0, 0); // initialisation du JB1 (RD9))
 
     int count = 0;
     int acl_x, acl_y, acl_z, module;
+    int pot;
     unsigned char pmodValue = 0;
+    unsigned char swt_old = 0;
+    unsigned char swt_cur = 0;
     unsigned int seconde = 0;
 
     macro_enable_interrupts();
 
+    SPIFLASH_EraseAll();
     LCD_WriteStringAtPos("Heure : ", 0, 0);
 
     // Main loop
@@ -74,24 +82,50 @@ void main()
             if (++count >= 1000)
             {
                 count = 0;
-                LED_ToggleValue(0);
-                // LCD_seconde(++seconde);
+                
+                // 
 
-                ACL_ReadAll(&acl_x, &acl_y, &acl_z);                
+                // Read potentiometer data
+                pot = AIC_Val();
+
+                // Read accelerometer data
+                ACL_ReadAll(&acl_x, &acl_y, &acl_z);
                 module = module_s(acl_x, acl_y, acl_z);
-                LCD_acl(acl_x, acl_y, acl_z, module);
+                
+                
+                // Toggle LED
+                LED_ToggleValue(0);
+                
+                // Display
+                swt_cur = SWT_GetValue(0);
+                if (swt_cur != swt_old)
+                    LCD_DisplayClear();
+                swt_old = swt_cur;
+
+                if (swt_cur == 0)
+                {
+                    //LCD_WriteStringAtPos("pot=", 0, 8); // affichage des secondes    
+                    LCD_WriteStringAtPos("P", 0, 10); 
+                    LCD_WriteIntAtPos(pot, 5, 0, 11, 0);
+                    LCD_time(++seconde);
+                }
+                else
+                {
+                    LCD_acl(acl_x, acl_y, acl_z, module);
+                }
             }
         }
     }
 }
 
-void LCD_seconde(unsigned int seconde)
+void LCD_time(unsigned int seconde)
 {
-    LCD_WriteIntAtPos(seconde % 60, 3, 0, 13, 0);
-    LCD_WriteStringAtPos(":", 0, 13); // affichage des secondes
-    LCD_WriteIntAtPos(seconde / 60 % 60, 3, 0, 10, 0);
-    LCD_WriteStringAtPos(":", 0, 10); // affichage des secondes
-    LCD_WriteIntAtPos(seconde / 3600 % 24, 3, 0, 7, 0);
+    LCD_WriteIntAtPos(seconde % 60, 3, 0, 6, 0);            // hours
+    LCD_WriteStringAtPos(":", 0, 6); 
+    LCD_WriteIntAtPos(seconde / 60 % 60, 3, 0, 3, 0);       // minutes
+    LCD_WriteStringAtPos(":", 0, 3); 
+    LCD_WriteIntAtPos(seconde / 3600 % 24, 3, 0, 0, 0);     // seconds
+    LCD_WriteStringAtPos("H", 0, 0); 
 }
 
 void LCD_acl(int x, int y, int z, int module)
@@ -103,16 +137,16 @@ void LCD_acl(int x, int y, int z, int module)
     LCD_WriteStringAtPos(buff, 0, 2);
 
     LCD_int_intToString(buff, y, 3);
-    LCD_WriteStringAtPos("y:", 0, 10);
-    LCD_WriteStringAtPos(buff, 0, 12);
+    LCD_WriteStringAtPos("y=", 0, 11);
+    LCD_WriteStringAtPos(buff, 0, 13);
 
     LCD_int_intToString(buff, z, 3);
-    LCD_WriteStringAtPos("z:", 1, 0);
+    LCD_WriteStringAtPos("z=", 1, 0);
     LCD_WriteStringAtPos(buff, 1, 2);
 
     LCD_int_intToString(buff, module, 3);
-    LCD_WriteStringAtPos("m:", 1, 10);
-    LCD_WriteStringAtPos(buff, 1, 12);
+    LCD_WriteStringAtPos("m=", 1, 11);
+    LCD_WriteStringAtPos(buff, 1, 13);
 }
 
 void LCD_int_intToString(char *buff, int val, int len)

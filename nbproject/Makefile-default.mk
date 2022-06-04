@@ -57,17 +57,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=config_bits.c led.c i2c.c acl.c adc.c aic.c spiflash.c lcd.c uart.c btn.c pmods.c main.c pmod_s.s module_s.s
+SOURCEFILES_QUOTED_IF_SPACED=config_bits.c led.c i2c.c acl.c adc.c aic.c spiflash.c lcd.c uart.c btn.c pmods.c main.c pmod_s.s module_s.s swt.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/config_bits.o ${OBJECTDIR}/led.o ${OBJECTDIR}/i2c.o ${OBJECTDIR}/acl.o ${OBJECTDIR}/adc.o ${OBJECTDIR}/aic.o ${OBJECTDIR}/spiflash.o ${OBJECTDIR}/lcd.o ${OBJECTDIR}/uart.o ${OBJECTDIR}/btn.o ${OBJECTDIR}/pmods.o ${OBJECTDIR}/main.o ${OBJECTDIR}/pmod_s.o ${OBJECTDIR}/module_s.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/config_bits.o.d ${OBJECTDIR}/led.o.d ${OBJECTDIR}/i2c.o.d ${OBJECTDIR}/acl.o.d ${OBJECTDIR}/adc.o.d ${OBJECTDIR}/aic.o.d ${OBJECTDIR}/spiflash.o.d ${OBJECTDIR}/lcd.o.d ${OBJECTDIR}/uart.o.d ${OBJECTDIR}/btn.o.d ${OBJECTDIR}/pmods.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/pmod_s.o.d ${OBJECTDIR}/module_s.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/config_bits.o ${OBJECTDIR}/led.o ${OBJECTDIR}/i2c.o ${OBJECTDIR}/acl.o ${OBJECTDIR}/adc.o ${OBJECTDIR}/aic.o ${OBJECTDIR}/spiflash.o ${OBJECTDIR}/lcd.o ${OBJECTDIR}/uart.o ${OBJECTDIR}/btn.o ${OBJECTDIR}/pmods.o ${OBJECTDIR}/main.o ${OBJECTDIR}/pmod_s.o ${OBJECTDIR}/module_s.o ${OBJECTDIR}/swt.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/config_bits.o.d ${OBJECTDIR}/led.o.d ${OBJECTDIR}/i2c.o.d ${OBJECTDIR}/acl.o.d ${OBJECTDIR}/adc.o.d ${OBJECTDIR}/aic.o.d ${OBJECTDIR}/spiflash.o.d ${OBJECTDIR}/lcd.o.d ${OBJECTDIR}/uart.o.d ${OBJECTDIR}/btn.o.d ${OBJECTDIR}/pmods.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/pmod_s.o.d ${OBJECTDIR}/module_s.o.d ${OBJECTDIR}/swt.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/config_bits.o ${OBJECTDIR}/led.o ${OBJECTDIR}/i2c.o ${OBJECTDIR}/acl.o ${OBJECTDIR}/adc.o ${OBJECTDIR}/aic.o ${OBJECTDIR}/spiflash.o ${OBJECTDIR}/lcd.o ${OBJECTDIR}/uart.o ${OBJECTDIR}/btn.o ${OBJECTDIR}/pmods.o ${OBJECTDIR}/main.o ${OBJECTDIR}/pmod_s.o ${OBJECTDIR}/module_s.o
+OBJECTFILES=${OBJECTDIR}/config_bits.o ${OBJECTDIR}/led.o ${OBJECTDIR}/i2c.o ${OBJECTDIR}/acl.o ${OBJECTDIR}/adc.o ${OBJECTDIR}/aic.o ${OBJECTDIR}/spiflash.o ${OBJECTDIR}/lcd.o ${OBJECTDIR}/uart.o ${OBJECTDIR}/btn.o ${OBJECTDIR}/pmods.o ${OBJECTDIR}/main.o ${OBJECTDIR}/pmod_s.o ${OBJECTDIR}/module_s.o ${OBJECTDIR}/swt.o
 
 # Source Files
-SOURCEFILES=config_bits.c led.c i2c.c acl.c adc.c aic.c spiflash.c lcd.c uart.c btn.c pmods.c main.c pmod_s.s module_s.s
+SOURCEFILES=config_bits.c led.c i2c.c acl.c adc.c aic.c spiflash.c lcd.c uart.c btn.c pmods.c main.c pmod_s.s module_s.s swt.c
 
 
 
@@ -199,6 +199,12 @@ ${OBJECTDIR}/main.o: main.c  .generated_files/flags/default/c7421c2b369acc1f3916
 	@${RM} ${OBJECTDIR}/main.o 
 	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1  -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/main.o.d" -o ${OBJECTDIR}/main.o main.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)    
 	
+${OBJECTDIR}/swt.o: swt.c  .generated_files/flags/default/d373ff35e886c12c12f9ca30736c9f39890a9690 .generated_files/flags/default/3af7d0cee9bc17bf9ff6ffb94390ad7a428d1e6a
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/swt.o.d 
+	@${RM} ${OBJECTDIR}/swt.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1  -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/swt.o.d" -o ${OBJECTDIR}/swt.o swt.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)    
+	
 else
 ${OBJECTDIR}/config_bits.o: config_bits.c  .generated_files/flags/default/7ea2bc73ebd26885f56a272ab2ff7fcb999de281 .generated_files/flags/default/3af7d0cee9bc17bf9ff6ffb94390ad7a428d1e6a
 	@${MKDIR} "${OBJECTDIR}" 
@@ -271,6 +277,12 @@ ${OBJECTDIR}/main.o: main.c  .generated_files/flags/default/d8b124f76ce5b7f61e42
 	@${RM} ${OBJECTDIR}/main.o.d 
 	@${RM} ${OBJECTDIR}/main.o 
 	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/main.o.d" -o ${OBJECTDIR}/main.o main.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)    
+	
+${OBJECTDIR}/swt.o: swt.c  .generated_files/flags/default/5c28910a33b46ead308c556c592a94d5cc4086be .generated_files/flags/default/3af7d0cee9bc17bf9ff6ffb94390ad7a428d1e6a
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/swt.o.d 
+	@${RM} ${OBJECTDIR}/swt.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/swt.o.d" -o ${OBJECTDIR}/swt.o swt.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)    
 	
 endif
 
