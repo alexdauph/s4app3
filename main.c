@@ -10,6 +10,12 @@
 #include <string.h>
 
 #define TMR_TIME 0.001 // x us for each tick
+#define X_OFFSET 2
+#define Y_OFFSET 21
+#define Z_OFFSET 40
+#define M_OFFSET 59
+#define P_OFFSET 78
+#define C_OFFSET 97
 
 // Since the flag is changed within an interrupt, we need the keyword volatile.
 static volatile int Flag_1s = 0;
@@ -18,7 +24,8 @@ void LCD_time(unsigned int seconde);
 void LCD_acl(int x, int y, int z, int module);
 void LCD_int_intToString(char *buff, int val, int len);
 void ACL_ReadAll(int *x, int *y, int *z);
-void TIME_cycle(unsigned char *val, unsigned char min, unsigned char max, unsigned char btn);
+void get_min_max_avg(int *src, int *dest, int len);
+void add_data(int *src, int *dest, int *checksum);
 
 extern void pmod_s();
 extern long module_s(int x, int y, int z);
@@ -52,6 +59,7 @@ void main()
     AIC_Init();
     SWT_Init();
     BTN_Init();
+    UART_Init(9600);
     SPIFLASH_Init();
 
     initialize_timer_interrupt();
@@ -59,11 +67,13 @@ void main()
 
     int count_1s = 0;
     int count_16s = 0;
-    int acl_x[16] = {0};
-    int acl_y[16] = {0};
-    int acl_z[16] = {0};
-    int acl_m[16] = {0};
-    int pot_v[16] = {0};
+    int checksum = 0;
+    int acl_x[16] = {0};    // X
+    int acl_y[16] = {0};    // Y
+    int acl_z[16] = {0};    // Z
+    int acl_m[16] = {0};    // Module
+    int pot_v[16] = {0};    // Potentiometer
+    int tx_data[256] = {0}; //
     unsigned init = 0;
     unsigned char swt_old = 0;
     unsigned char swt_cur = 0;
@@ -72,8 +82,8 @@ void main()
     macro_enable_interrupts();
 
     SPIFLASH_EraseAll();
-    LCD_WriteStringAtPos("Enter", 0, 0);
-    LCD_WriteStringAtPos("time", 0, 0);
+    // LCD_WriteStringAtPos("Enter", 0, 0);
+    // LCD_WriteStringAtPos("time", 0, 0);
 
     // Main loop
     while (1)
@@ -121,7 +131,17 @@ void main()
             if (count_16s >= 16 && init == 0)
             {
                 count_16s = 0;
-                // LCD_WriteStringAtPos("time is x", 0, 0);
+
+                // Build frame
+                checksum = 0;
+                tx_data[0] = (0b0101 << 8) | (255); // Oscillator + data length
+                tx_data[1] = seconde;               // Timestamp
+                add_data(acl_x, tx_data + X_OFFSET, &checksum);
+                add_data(acl_y, tx_data + Y_OFFSET, &checksum);
+                add_data(acl_z, tx_data + Z_OFFSET, &checksum);
+                add_data(acl_m, tx_data + M_OFFSET, &checksum);
+                add_data(pot_v, tx_data + P_OFFSET, &checksum);
+                add_data[C_OFFSET] = checksum;
             }
 
             count_1s++;
@@ -194,28 +214,44 @@ void ACL_ReadAll(int *x, int *y, int *z)
         *z |= 0xFFFFF000;
 }
 
-void TIME_cycle(unsigned char *val, unsigned char min, unsigned char max, unsigned char btn)
-{
-}
-
-void get_min_max_avg(int *data, int *return_buff, int len)
+void get_min_max_avg(int *src, int *dest, int len)
 {
     int i;
-    int min = data[0];
-    int max = data[0];
-    unsigned long avg = 0;
+    int min = src[0];
+    int max = src[0];
+    int avg = 0;
 
     for (i = 0; i < len; i++)
     {
-        if (data[i] < min)
-            min = data[i];
-        if (data[i] > max)
-            max = data[i];
-        avg += data[i];
+        if (src[i] < min)
+            min = src[i];
+        if (src[i] > max)
+            max = src[i];
+        avg += src[i];
     }
     avg /= len;
 
-    return_buff[0] = min;
-    return_buff[1] = max;
-    return_buff[2] = avg;
+    dest[0] = min;
+    dest[1] = max;
+    dest[2] = avg;
+}
+
+void add_data(int *src, int *dest, int *checksum)
+{
+    int i;
+    int stats[3] = {0};
+
+    get_min_max_avg(src, stats, 16);
+    for (i = 0; i < 19; i++)
+    {
+        if (i < 16)
+            dest[i] = src[i];
+        else
+            dest[i] = stats[i - 16];
+
+        *checksum ^= (dest[i] & 0xFF000000) << 0UL;
+        *checksum ^= (dest[i] & 0x00FF0000) << 8UL;
+        *checksum ^= (dest[i] & 0x0000FF00) << 16UL;
+        *checksum ^= (dest[i] & 0x000000FF) << 24UL;
+    }
 }
