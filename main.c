@@ -22,8 +22,10 @@ static volatile int Flag_1s = 0;
 
 void LCD_time(unsigned int seconde);
 void LCD_acl(int x, int y, int z, int module);
-void LCD_int_intToString(char *buff, int val, int len);
+void UART_SendFrame(int *src);
 void ACL_ReadAll(int *x, int *y, int *z);
+
+void int_to_hex_string(char *buff, int val, int len);
 void get_min_max_avg(int *src, int *dest, int len);
 void add_data(int *src, int *dest, int *checksum);
 
@@ -68,6 +70,7 @@ void main()
     int count_1s = 0;
     int count_16s = 0;
     int checksum = 0;
+    int i = 0;
     int acl_x[16] = {0};    // X
     int acl_y[16] = {0};    // Y
     int acl_z[16] = {0};    // Z
@@ -136,12 +139,26 @@ void main()
                 checksum = 0;
                 tx_data[0] = (0b0101 << 8) | (255); // Oscillator + data length
                 tx_data[1] = seconde;               // Timestamp
+                checksum ^= (tx_data[0] & 0x00000F00) >> 8;
+                checksum ^= (tx_data[0] & 0x000000F0) >> 4;
+                checksum ^= (tx_data[0] & 0x0000000F) >> 0;
+                checksum ^= (tx_data[1] & 0xF0000000) >> 28UL;
+                checksum ^= (tx_data[1] & 0x0F000000) >> 24UL;
+                checksum ^= (tx_data[1] & 0x00F00000) >> 20UL;
+                checksum ^= (tx_data[1] & 0x000F0000) >> 16UL;
+                checksum ^= (tx_data[1] & 0x0000F000) >> 12UL;
+                checksum ^= (tx_data[1] & 0x00000F00) >> 8UL;
+                checksum ^= (tx_data[1] & 0x000000F0) >> 4UL;
+                checksum ^= (tx_data[1] & 0x0000000F) >> 0UL;
                 add_data(acl_x, tx_data + X_OFFSET, &checksum);
                 add_data(acl_y, tx_data + Y_OFFSET, &checksum);
                 add_data(acl_z, tx_data + Z_OFFSET, &checksum);
                 add_data(acl_m, tx_data + M_OFFSET, &checksum);
                 add_data(pot_v, tx_data + P_OFFSET, &checksum);
-                add_data[C_OFFSET] = checksum;
+                tx_data[C_OFFSET] = checksum;
+
+                // Send frame to UART
+                UART_SendFrame(tx_data);
             }
 
             count_1s++;
@@ -163,24 +180,24 @@ void LCD_acl(int x, int y, int z, int module)
 {
     char buff[16] = {0};
 
-    LCD_int_intToString(buff, x, 3);
+    int_to_hex_string(buff, x, 3);
     LCD_WriteStringAtPos("x=", 0, 0);
     LCD_WriteStringAtPos(buff, 0, 2);
 
-    LCD_int_intToString(buff, y, 3);
+    int_to_hex_string(buff, y, 3);
     LCD_WriteStringAtPos("y=", 0, 11);
     LCD_WriteStringAtPos(buff, 0, 13);
 
-    LCD_int_intToString(buff, z, 3);
+    int_to_hex_string(buff, z, 3);
     LCD_WriteStringAtPos("z=", 1, 0);
     LCD_WriteStringAtPos(buff, 1, 2);
 
-    LCD_int_intToString(buff, module, 3);
+    int_to_hex_string(buff, module, 3);
     LCD_WriteStringAtPos("m=", 1, 11);
     LCD_WriteStringAtPos(buff, 1, 13);
 }
 
-void LCD_int_intToString(char *buff, int val, int len)
+void int_to_hex_string(char *buff, int val, int len)
 {
     int i;
 
@@ -249,9 +266,53 @@ void add_data(int *src, int *dest, int *checksum)
         else
             dest[i] = stats[i - 16];
 
-        *checksum ^= (dest[i] & 0xFF000000) << 0UL;
-        *checksum ^= (dest[i] & 0x00FF0000) << 8UL;
-        *checksum ^= (dest[i] & 0x0000FF00) << 16UL;
-        *checksum ^= (dest[i] & 0x000000FF) << 24UL;
+        /*checksum ^= (dest[i] & 0xF0000000) >> 28UL;
+        *checksum ^= (dest[i] & 0x0F000000) >> 24UL;
+        *checksum ^= (dest[i] & 0x00F00000) >> 20UL;
+        *checksum ^= (dest[i] & 0x000F0000) >> 16UL;
+        *checksum ^= (dest[i] & 0x0000F000) >> 12UL;*/
+        *checksum ^= (dest[i] & 0x00000F00) >> 8UL;
+        *checksum ^= (dest[i] & 0x000000F0) >> 4UL;
+        *checksum ^= (dest[i] & 0x0000000F) >> 0UL;
     }
+}
+
+void UART_SendFrame(int *src)
+{
+    char buff[16] = {0};
+
+    int_to_hex_string(buff, (src[0] & 0x00000F00) >> 8, 1);
+    UART_PutString("\nOscillation : 0x");
+    UART_PutString(buff);
+
+    int_to_hex_string(buff, (src[0] & 0x000000FF) >> 0, 2);
+    UART_PutString("\nCount : 0x");
+    UART_PutString(buff);
+
+    int_to_hex_string(buff, (src[M_OFFSET + 16] & 0x00000FFF), 3);
+    UART_PutString("\nModule min : 0x");
+    UART_PutString(buff);
+
+    int_to_hex_string(buff, (src[M_OFFSET + 17] & 0x00000FFF), 3);
+    UART_PutString("\nModule max : 0x");
+    UART_PutString(buff);
+
+    int_to_hex_string(buff, (src[M_OFFSET + 18] & 0x00000FFF), 3);
+    UART_PutString("\nModule avg : 0x");
+    UART_PutString(buff);
+
+    int_to_hex_string(buff, (src[C_OFFSET] & 0x0000000F), 1);
+    UART_PutString("\nChecksum : 0x");
+    UART_PutString(buff);
+
+    /*for (i = 1; i < 96; i++)
+    {
+        UART_PutString("\n[] : ");
+        UART_PutChar((char)((tx_data[i] & 0xFF000000) >> 24));
+        UART_PutChar((char)((tx_data[i] & 0x00FF0000) >> 16));
+        UART_PutChar((char)((tx_data[i] & 0x0000FF00) >> 8));
+        UART_PutChar((char)((tx_data[i] & 0x000000FF) >> 0));
+    }
+    UART_PutString("\nChecksum : ");
+    UART_PutChar((char)((tx_data[C_OFFSET] & 0x000000FF) >> 0)); // Send checksum*/
 }
