@@ -81,7 +81,7 @@ void main()
     unsigned init = 0;
     unsigned char swt_old = 0;
     unsigned char swt_cur = 0;
-    unsigned int seconde = 0;
+    unsigned int seconds = 0;
     date_time_t date_time = {0};
 
     macro_enable_interrupts();
@@ -116,9 +116,7 @@ void main()
                 if (swt_cur != swt_old)
                     LCD_DisplayClear();
                 swt_old = swt_cur;
-
-                date_time_1s(&date_time);
-
+           
                 if (swt_cur == 0)
                 {
                     LCD_WriteIntAtPos(pot_v[count_16s], 5, 0, 11, 0);
@@ -130,6 +128,9 @@ void main()
                     LCD_acl(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s], acl_m[count_16s]);
                 }
 
+                // Increment date/time and second counter
+                date_time_1s(&date_time);
+                seconds++;
                 count_16s++;
             }
 
@@ -141,7 +142,7 @@ void main()
                 // Build frame
                 checksum = 0;
                 tx_data[0] = (0b0101 << 8) | (255); // Oscillator + data length
-                tx_data[1] = seconde;               // Timestamp
+                tx_data[1] = seconds;               // Timestamp
                 checksum ^= (tx_data[0] & 0x00000F00) >> 8;
                 checksum ^= (tx_data[0] & 0x000000F0) >> 4;
                 checksum ^= (tx_data[0] & 0x0000000F) >> 0;
@@ -171,11 +172,11 @@ void main()
 
 void LCD_time(date_time_t *date_time)
 {
-    LCD_WriteIntAtPos(seconde % 60, 3, 0, 6, 0); // seconds
+    LCD_WriteIntAtPos(date_time->second, 3, 0, 6, 0); // seconds
     LCD_WriteStringAtPos(":", 0, 6);
-    LCD_WriteIntAtPos(seconde / 60 % 60, 3, 0, 3, 0); // minutes
+    LCD_WriteIntAtPos(date_time->minute, 3, 0, 3, 0); // minutes
     LCD_WriteStringAtPos(":", 0, 3);
-    LCD_WriteIntAtPos(seconde / 3600 % 24, 3, 0, 0, 0); // hours
+    LCD_WriteIntAtPos(date_time->hour, 3, 0, 0, 0); // hours
     LCD_WriteStringAtPos("H", 0, 0);
 }
 
