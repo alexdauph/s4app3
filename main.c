@@ -9,6 +9,8 @@
 #include "config.h"
 #include <string.h>
 
+#define TMR_TIME 0.001 // x us for each tick
+
 // Since the flag is changed within an interrupt, we need the keyword volatile.
 static volatile int Flag_1s = 0;
 
@@ -16,6 +18,7 @@ void LCD_time(unsigned int seconde);
 void LCD_acl(int x, int y, int z, int module);
 void LCD_int_intToString(char *buff, int val, int len);
 void ACL_ReadAll(int *x, int *y, int *z);
+void TIME_cycle(unsigned char *val, unsigned char min, unsigned char max, unsigned char btn);
 
 extern void pmod_s();
 extern long module_s(int x, int y, int z);
@@ -25,8 +28,6 @@ void __ISR(_TIMER_1_VECTOR, IPL2AUTO) Timer1ISR(void)
     Flag_1s = 1;       //    Indique à la boucle principale qu'on doit traiter
     IFS0bits.T1IF = 0; //    clear interrupt flag
 }
-
-#define TMR_TIME 0.001 // x us for each tick
 
 void initialize_timer_interrupt(void)
 {
@@ -50,15 +51,20 @@ void main()
     ACL_Init();
     AIC_Init();
     SWT_Init();
+    BTN_Init();
     SPIFLASH_Init();
 
     initialize_timer_interrupt();
     PMODS_InitPin(1, 1, 0, 0, 0); // initialisation du JB1 (RD9))
 
-    int count = 0;
-    int acl_x, acl_y, acl_z, module;
-    int pot;
-    unsigned char pmodValue = 0;
+    int count_1s = 0;
+    int count_16s = 0;
+    int acl_x[16] = {0};
+    int acl_y[16] = {0};
+    int acl_z[16] = {0};
+    int acl_m[16] = {0};
+    int pot_v[16] = {0};
+    unsigned init = 0;
     unsigned char swt_old = 0;
     unsigned char swt_cur = 0;
     unsigned int seconde = 0;
@@ -66,36 +72,31 @@ void main()
     macro_enable_interrupts();
 
     SPIFLASH_EraseAll();
-    LCD_WriteStringAtPos("Heure : ", 0, 0);
+    LCD_WriteStringAtPos("Enter", 0, 0);
+    LCD_WriteStringAtPos("time", 0, 0);
 
     // Main loop
     while (1)
     {
         if (Flag_1s) // Flag d'interruption à chaque 1 ms
         {
-            // pmodValue = PMODS_GetValue(1, 1);
-            // pmodValue ^= 1;
-            // PMODS_SetValue(1, 1, pmodValue);
-            // pmod_s();
+            Flag_1s = 0; // Reset flag
 
-            Flag_1s = 0; // Reset the flag to capture the next event
-            if (++count >= 1000)
+            // Do every 1s
+            if (count_1s >= 1000 && init == 0)
             {
-                count = 0;
-                
-                // 
+                count_1s = 0;
 
                 // Read potentiometer data
-                pot = AIC_Val();
+                pot_v[count_16s] = AIC_Val();
 
                 // Read accelerometer data
-                ACL_ReadAll(&acl_x, &acl_y, &acl_z);
-                module = module_s(acl_x, acl_y, acl_z);
-                
-                
+                ACL_ReadAll(&acl_x[count_16s], &acl_y[count_16s], &acl_z[count_16s]);
+                acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
+
                 // Toggle LED
                 LED_ToggleValue(0);
-                
+
                 // Display
                 swt_cur = SWT_GetValue(0);
                 if (swt_cur != swt_old)
@@ -104,28 +105,38 @@ void main()
 
                 if (swt_cur == 0)
                 {
-                    //LCD_WriteStringAtPos("pot=", 0, 8); // affichage des secondes    
-                    LCD_WriteStringAtPos("P", 0, 10); 
-                    LCD_WriteIntAtPos(pot, 5, 0, 11, 0);
+                    LCD_WriteIntAtPos(pot_v[count_16s], 5, 0, 11, 0);
+                    LCD_WriteStringAtPos("P", 0, 11);
                     LCD_time(++seconde);
                 }
                 else
                 {
-                    LCD_acl(acl_x, acl_y, acl_z, module);
+                    LCD_acl(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s], acl_m[count_16s]);
                 }
+
+                count_16s++;
             }
+
+            // Do every 16s
+            if (count_16s >= 16 && init == 0)
+            {
+                count_16s = 0;
+                // LCD_WriteStringAtPos("time is x", 0, 0);
+            }
+
+            count_1s++;
         }
     }
 }
 
 void LCD_time(unsigned int seconde)
 {
-    LCD_WriteIntAtPos(seconde % 60, 3, 0, 6, 0);            // hours
-    LCD_WriteStringAtPos(":", 0, 6); 
-    LCD_WriteIntAtPos(seconde / 60 % 60, 3, 0, 3, 0);       // minutes
-    LCD_WriteStringAtPos(":", 0, 3); 
-    LCD_WriteIntAtPos(seconde / 3600 % 24, 3, 0, 0, 0);     // seconds
-    LCD_WriteStringAtPos("H", 0, 0); 
+    LCD_WriteIntAtPos(seconde % 60, 3, 0, 6, 0); // seconds
+    LCD_WriteStringAtPos(":", 0, 6);
+    LCD_WriteIntAtPos(seconde / 60 % 60, 3, 0, 3, 0); // minutes
+    LCD_WriteStringAtPos(":", 0, 3);
+    LCD_WriteIntAtPos(seconde / 3600 % 24, 3, 0, 0, 0); // hours
+    LCD_WriteStringAtPos("H", 0, 0);
 }
 
 void LCD_acl(int x, int y, int z, int module)
@@ -181,4 +192,30 @@ void ACL_ReadAll(int *x, int *y, int *z)
         *y |= 0xFFFFF000;
     if (*z & 0x0800)
         *z |= 0xFFFFF000;
+}
+
+void TIME_cycle(unsigned char *val, unsigned char min, unsigned char max, unsigned char btn)
+{
+}
+
+void get_min_max_avg(int *data, int *return_buff, int len)
+{
+    int i;
+    int min = data[0];
+    int max = data[0];
+    unsigned long avg = 0;
+
+    for (i = 0; i < len; i++)
+    {
+        if (data[i] < min)
+            min = data[i];
+        if (data[i] > max)
+            max = data[i];
+        avg += data[i];
+    }
+    avg /= len;
+
+    return_buff[0] = min;
+    return_buff[1] = max;
+    return_buff[2] = avg;
 }
