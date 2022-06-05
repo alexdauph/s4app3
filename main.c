@@ -21,7 +21,7 @@
 // Since the flag is changed within an interrupt, we need the keyword volatile.
 static volatile int Flag_1s = 0;
 
-void LCD_time(unsigned int seconde);
+void LCD_time(date_time_t *date_time);
 void LCD_acl(int x, int y, int z, int module);
 void UART_SendFrame(int *src);
 void ACL_ReadAll(int *x, int *y, int *z);
@@ -86,7 +86,7 @@ void main()
 
     macro_enable_interrupts();
 
-    //SPIFLASH_EraseAll();
+    // SPIFLASH_EraseAll();
     select_date_time(&date_time);
 
     // Main loop
@@ -117,11 +117,13 @@ void main()
                     LCD_DisplayClear();
                 swt_old = swt_cur;
 
+                date_time_1s(&date_time);
+
                 if (swt_cur == 0)
                 {
                     LCD_WriteIntAtPos(pot_v[count_16s], 5, 0, 11, 0);
                     LCD_WriteStringAtPos("P", 0, 11);
-                    LCD_time(++seconde);
+                    LCD_time(&date_time);
                 }
                 else
                 {
@@ -167,7 +169,7 @@ void main()
     }
 }
 
-void LCD_time(unsigned int seconde)
+void LCD_time(date_time_t *date_time)
 {
     LCD_WriteIntAtPos(seconde % 60, 3, 0, 6, 0); // seconds
     LCD_WriteStringAtPos(":", 0, 6);
@@ -317,4 +319,3 @@ void UART_SendFrame(int *src)
     UART_PutString("\nChecksum : ");
     UART_PutChar((char)((tx_data[C_OFFSET] & 0x000000FF) >> 0)); // Send checksum*/
 }
-
