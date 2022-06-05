@@ -66,7 +66,13 @@ void main()
     SPIFLASH_Init();
 
     initialize_timer_interrupt();
-    PMODS_InitPin(1, 1, 0, 0, 0); // initialisation du JB1 (RD9))
+
+    PMODS_InitPin(0, 1, 0, 0, 0); // initialisation du JB1 (RC2)) pour D0
+    PMODS_InitPin(0, 2, 0, 0, 0); // initialisation du JA2 (RC1)) pour D1
+    PMODS_InitPin(0, 3, 0, 0, 0); // initialisation du JA3 (RC4)) pour D2
+    PMODS_InitPin(0, 4, 0, 0, 0); // initialisation du JA4 (RG6)) pour D3
+    PMODS_InitPin(0, 7, 0, 0, 0); // initialisation du JA4 (RC3)) pour parite
+    PMODS_InitPin(0, 8, 1, 0, 0); // initialisation du JA4 (RC7)) pour ack
 
     int count_1s = 0;
     int count_16s = 0;
@@ -81,6 +87,7 @@ void main()
     unsigned init = 0;
     unsigned char swt_old = 0;
     unsigned char swt_cur = 0;
+    unsigned char waiting = 0;
     unsigned int seconds = 0;
     date_time_t date_time = {0};
 
@@ -116,12 +123,16 @@ void main()
                 if (swt_cur != swt_old)
                     LCD_DisplayClear();
                 swt_old = swt_cur;
-           
+
                 if (swt_cur == 0)
                 {
                     LCD_WriteIntAtPos(pot_v[count_16s], 5, 0, 11, 0);
                     LCD_WriteStringAtPos("P", 0, 11);
                     LCD_time(&date_time);
+                    if (waiting == 1)
+                        LCD_WriteStringAtPos("Waiting for ACK", 1, 0);
+                    else
+                        LCD_WriteStringAtPos("                ", 1, 0);
                 }
                 else
                 {
@@ -184,21 +195,17 @@ void LCD_acl(int x, int y, int z, int module)
 {
     char buff[16] = {0};
 
-    int_to_hex_string(buff, x, 3);
     LCD_WriteStringAtPos("x=", 0, 0);
-    LCD_WriteStringAtPos(buff, 0, 2);
+    LCD_WriteIntAtPos(x, 5, 0, 2, 0);
 
-    int_to_hex_string(buff, y, 3);
-    LCD_WriteStringAtPos("y=", 0, 11);
-    LCD_WriteStringAtPos(buff, 0, 13);
+    LCD_WriteStringAtPos("y=", 0, 9);
+    LCD_WriteIntAtPos(y, 5, 0, 11, 0);
 
-    int_to_hex_string(buff, z, 3);
     LCD_WriteStringAtPos("z=", 1, 0);
-    LCD_WriteStringAtPos(buff, 1, 2);
+    LCD_WriteIntAtPos(z, 5, 1, 2, 0);
 
-    int_to_hex_string(buff, module, 3);
-    LCD_WriteStringAtPos("m=", 1, 11);
-    LCD_WriteStringAtPos(buff, 1, 13);
+    LCD_WriteStringAtPos("m=", 1, 9);
+    LCD_WriteIntAtPos(module, 5, 1, 11, 0);
 }
 
 void int_to_hex_string(char *buff, int val, int len)
