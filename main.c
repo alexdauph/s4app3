@@ -7,6 +7,7 @@
 #include <xc.h>
 #include <sys/attribs.h>
 #include "config.h"
+#include "date_time.h"
 #include <string.h>
 
 #define TMR_TIME 0.001 // x us for each tick
@@ -81,12 +82,12 @@ void main()
     unsigned char swt_old = 0;
     unsigned char swt_cur = 0;
     unsigned int seconde = 0;
+    date_time_t date_time = {0};
 
     macro_enable_interrupts();
 
-    SPIFLASH_EraseAll();
-    // LCD_WriteStringAtPos("Enter", 0, 0);
-    // LCD_WriteStringAtPos("time", 0, 0);
+    //SPIFLASH_EraseAll();
+    select_date_time(&date_time);
 
     // Main loop
     while (1)
@@ -267,10 +268,10 @@ void add_data(int *src, int *dest, int *checksum)
             dest[i] = stats[i - 16];
 
         /*checksum ^= (dest[i] & 0xF0000000) >> 28UL;
-        *checksum ^= (dest[i] & 0x0F000000) >> 24UL;
-        *checksum ^= (dest[i] & 0x00F00000) >> 20UL;
-        *checksum ^= (dest[i] & 0x000F0000) >> 16UL;
-        *checksum ^= (dest[i] & 0x0000F000) >> 12UL;*/
+         *checksum ^= (dest[i] & 0x0F000000) >> 24UL;
+         *checksum ^= (dest[i] & 0x00F00000) >> 20UL;
+         *checksum ^= (dest[i] & 0x000F0000) >> 16UL;
+         *checksum ^= (dest[i] & 0x0000F000) >> 12UL;*/
         *checksum ^= (dest[i] & 0x00000F00) >> 8UL;
         *checksum ^= (dest[i] & 0x000000F0) >> 4UL;
         *checksum ^= (dest[i] & 0x0000000F) >> 0UL;
@@ -316,3 +317,4 @@ void UART_SendFrame(int *src)
     UART_PutString("\nChecksum : ");
     UART_PutChar((char)((tx_data[C_OFFSET] & 0x000000FF) >> 0)); // Send checksum*/
 }
+
