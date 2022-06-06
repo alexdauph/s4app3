@@ -30,7 +30,7 @@ void int_to_hex_string(char *buff, int val, int len);
 void get_min_max_avg(int *src, int *dest, int len);
 void add_data(int *src, int *dest, int *checksum);
 
-extern void pmod_s();
+extern void pmod_s(int *data, int *new);
 extern long module_s(int x, int y, int z);
 
 void __ISR(_TIMER_1_VECTOR, IPL2AUTO) Timer1ISR(void)
@@ -77,6 +77,7 @@ void main()
     int count_1s = 0;
     int count_16s = 0;
     int checksum = 0;
+    int pmod_new = 0;
     int i = 0;
     int acl_x[16] = {0};    // X
     int acl_y[16] = {0};    // Y
@@ -84,7 +85,8 @@ void main()
     int acl_m[16] = {0};    // Module
     int pot_v[16] = {0};    // Potentiometer
     int tx_data[256] = {0}; //
-    unsigned init = 0;
+    unsigned char init = 0;
+    unsigned char ack = 0;
     unsigned char swt_old = 0;
     unsigned char swt_cur = 0;
     unsigned char waiting = 0;
@@ -94,14 +96,25 @@ void main()
     macro_enable_interrupts();
 
     // SPIFLASH_EraseAll();
-    select_date_time(&date_time);
+    //select_date_time(&date_time);
 
     // Main loop
     while (1)
     {
+
+        pmod_s(tx_data, &pmod_new);
+        // if(pmod_new == 1)
+        // pmod_new = 0;
+
         if (Flag_1s) // Flag d'interruption à chaque 1 ms
         {
             Flag_1s = 0; // Reset flag
+
+            // void PMODS_SetValue(unsigned char bPmod, unsigned char bPos, unsigned char bVal);
+
+            // Faire osciller la ligne ACK pour continuer à envoyer du data
+            PMODS_SetValue(7, 8, ack);
+            ack = !ack;
 
             // Do every 1s
             if (count_1s >= 1000 && init == 0)
@@ -174,6 +187,9 @@ void main()
 
                 // Send frame to UART
                 UART_SendFrame(tx_data);
+
+                // Set PMOD to send from frame
+                pmod_new = 1;
             }
 
             count_1s++;
