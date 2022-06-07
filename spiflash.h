@@ -44,6 +44,9 @@ void SPIFLASH_Read(unsigned int addr, unsigned char *pBuf, unsigned int len);
 
 void SPIFLASH_Close();
 
+void SPIFLASH_WriteValues(int page, int *buff);
+void SPIFLASH_ReadValues(int page, int *buff);
+
 // private
 
 void SPIFLASH_ConfigurePins();

@@ -44,11 +44,8 @@ pmod_s:			                # Étiquette de la fonction
         lw $t0, 0($t0)          # load active value   
         bne $t0, $s1, end       # check if transmitting is active
         nop
-
-        
     
-
-
+    
     
     lw $t0, PORTC($0)	# Lecture port C
     lw $t1, PORTG($0)   # Lecture port G

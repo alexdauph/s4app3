@@ -5,10 +5,12 @@
         <group>
             <file>file:/D:/School/S4/APP3/Labo2.X/lcd.c</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/main.c</file>
+            <file>file:/D:/School/S4/APP3/Labo2.X/nbproject/Makefile-impl.mk</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/date_time.c</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/swt.c</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/aic.c</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/date_time.h</file>
+            <file>file:/D:/School/S4/APP3/Labo2.X/spiflash.c</file>
         </group>
     </open-files>
 </project-private>

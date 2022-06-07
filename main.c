@@ -28,7 +28,8 @@ void ACL_ReadAll(int *x, int *y, int *z);
 
 void int_to_hex_string(char *buff, int val, int len);
 void get_min_max_avg(int *src, int *dest, int len);
-void add_data(int *src, int *dest, int *checksum);
+void add_bloc(int *src, int *dest, int *checksum);
+void insert_data(int src, int *dest, int *checksum);
 
 extern void pmod_s(int *data, int *new);
 extern long module_s(int x, int y, int z);
@@ -79,6 +80,8 @@ void main()
     int checksum = 0;
     int pmod_new = 0;
     int i = 0;
+    int buff[5] = {0};       // 
+    int buff2[5] = {0};
     int acl_x[16] = {0};    // X
     int acl_y[16] = {0};    // Y
     int acl_z[16] = {0};    // Z
@@ -95,8 +98,8 @@ void main()
 
     macro_enable_interrupts();
 
-    // SPIFLASH_EraseAll();
-    //select_date_time(&date_time);
+    SPIFLASH_EraseAll();                 // TODO uncomment
+    // select_date_time(&date_time);        // TODO uncomment
 
     // Main loop
     while (1)
@@ -109,8 +112,6 @@ void main()
         if (Flag_1s) // Flag d'interruption à chaque 1 ms
         {
             Flag_1s = 0; // Reset flag
-
-            // void PMODS_SetValue(unsigned char bPmod, unsigned char bPos, unsigned char bVal);
 
             // Faire osciller la ligne ACK pour continuer à envoyer du data
             PMODS_SetValue(7, 8, ack);
@@ -127,6 +128,18 @@ void main()
                 // Read accelerometer data
                 ACL_ReadAll(&acl_x[count_16s], &acl_y[count_16s], &acl_z[count_16s]);
                 acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
+                //acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
+                //acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
+                //acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
+
+                // Send to flash
+                buff[0] = acl_x[count_16s];
+                buff[1] = acl_y[count_16s];
+                buff[2] = acl_z[count_16s];
+                buff[3] = acl_m[count_16s];
+                buff[4] = pot_v[count_16s];
+                SPIFLASH_WriteValues(count_16s, buff);
+                SPIFLASH_ReadValues(count_16s, buff2);
 
                 // Toggle LED
                 LED_ToggleValue(0);
@@ -165,24 +178,13 @@ void main()
 
                 // Build frame
                 checksum = 0;
-                tx_data[0] = (0b0101 << 8) | (255); // Oscillator + data length
-                tx_data[1] = seconds;               // Timestamp
-                checksum ^= (tx_data[0] & 0x00000F00) >> 8;
-                checksum ^= (tx_data[0] & 0x000000F0) >> 4;
-                checksum ^= (tx_data[0] & 0x0000000F) >> 0;
-                checksum ^= (tx_data[1] & 0xF0000000) >> 28UL;
-                checksum ^= (tx_data[1] & 0x0F000000) >> 24UL;
-                checksum ^= (tx_data[1] & 0x00F00000) >> 20UL;
-                checksum ^= (tx_data[1] & 0x000F0000) >> 16UL;
-                checksum ^= (tx_data[1] & 0x0000F000) >> 12UL;
-                checksum ^= (tx_data[1] & 0x00000F00) >> 8UL;
-                checksum ^= (tx_data[1] & 0x000000F0) >> 4UL;
-                checksum ^= (tx_data[1] & 0x0000000F) >> 0UL;
-                add_data(acl_x, tx_data + X_OFFSET, &checksum);
-                add_data(acl_y, tx_data + Y_OFFSET, &checksum);
-                add_data(acl_z, tx_data + Z_OFFSET, &checksum);
-                add_data(acl_m, tx_data + M_OFFSET, &checksum);
-                add_data(pot_v, tx_data + P_OFFSET, &checksum);
+                insert_data((0b0101 << 8) | (95), &tx_data[0], &checksum); // Oscillator + data length
+                insert_data(seconds, &tx_data[1], &checksum);              // Timestamp
+                add_bloc(acl_x, tx_data + X_OFFSET, &checksum);
+                add_bloc(acl_y, tx_data + Y_OFFSET, &checksum);
+                add_bloc(acl_z, tx_data + Z_OFFSET, &checksum);
+                add_bloc(acl_m, tx_data + M_OFFSET, &checksum);
+                add_bloc(pot_v, tx_data + P_OFFSET, &checksum);
                 tx_data[C_OFFSET] = checksum;
 
                 // Send frame to UART
@@ -280,7 +282,7 @@ void get_min_max_avg(int *src, int *dest, int len)
     dest[2] = avg;
 }
 
-void add_data(int *src, int *dest, int *checksum)
+void add_bloc(int *src, int *dest, int *checksum)
 {
     int i;
     int stats[3] = {0};
@@ -289,19 +291,24 @@ void add_data(int *src, int *dest, int *checksum)
     for (i = 0; i < 19; i++)
     {
         if (i < 16)
-            dest[i] = src[i];
+            insert_data(src[i], &dest[i], checksum);
         else
-            dest[i] = stats[i - 16];
-
-        /*checksum ^= (dest[i] & 0xF0000000) >> 28UL;
-         *checksum ^= (dest[i] & 0x0F000000) >> 24UL;
-         *checksum ^= (dest[i] & 0x00F00000) >> 20UL;
-         *checksum ^= (dest[i] & 0x000F0000) >> 16UL;
-         *checksum ^= (dest[i] & 0x0000F000) >> 12UL;*/
-        *checksum ^= (dest[i] & 0x00000F00) >> 8UL;
-        *checksum ^= (dest[i] & 0x000000F0) >> 4UL;
-        *checksum ^= (dest[i] & 0x0000000F) >> 0UL;
+            insert_data(stats[i - 16], &dest[i], checksum);
     }
+}
+
+void insert_data(int data, int *dest, int *checksum)
+{
+    *dest = data;
+
+    *checksum ^= (*checksum & 0xF0000000) >> 28UL;
+    *checksum ^= (*checksum & 0x0F000000) >> 24UL;
+    *checksum ^= (*checksum & 0x00F00000) >> 20UL;
+    *checksum ^= (*checksum & 0x000F0000) >> 16UL;
+    *checksum ^= (*checksum & 0x0000F000) >> 12UL;
+    *checksum ^= (*checksum & 0x00000F00) >> 8UL;
+    *checksum ^= (*checksum & 0x000000F0) >> 4UL;
+    *checksum ^= (*checksum & 0x0000000F) >> 0UL;
 }
 
 void UART_SendFrame(int *src)
@@ -331,15 +338,4 @@ void UART_SendFrame(int *src)
     int_to_hex_string(buff, (src[C_OFFSET] & 0x0000000F), 1);
     UART_PutString("\nChecksum : 0x");
     UART_PutString(buff);
-
-    /*for (i = 1; i < 96; i++)
-    {
-        UART_PutString("\n[] : ");
-        UART_PutChar((char)((tx_data[i] & 0xFF000000) >> 24));
-        UART_PutChar((char)((tx_data[i] & 0x00FF0000) >> 16));
-        UART_PutChar((char)((tx_data[i] & 0x0000FF00) >> 8));
-        UART_PutChar((char)((tx_data[i] & 0x000000FF) >> 0));
-    }
-    UART_PutString("\nChecksum : ");
-    UART_PutChar((char)((tx_data[C_OFFSET] & 0x000000FF) >> 0)); // Send checksum*/
 }

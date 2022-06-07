@@ -9,13 +9,13 @@
 
   @Description
         This file groups the functions that implement the SPIFLASH library.
-        The library implements SPI access to the onboard SPI Flash memory and 
-        provides basic functions to configure the SPI Flash memory, write and read 
+        The library implements SPI access to the onboard SPI Flash memory and
+        provides basic functions to configure the SPI Flash memory, write and read
         functions to access SPI Flash memory bytes.
-        Include the file in the project, together with config.h, when this library is needed.	
+        Include the file in the project, together with config.h, when this library is needed.
 
   @Author
-    Cristian Fatu 
+    Cristian Fatu
     cristian.fatu@digilent.ro
  */
 /* ************************************************************************** */
@@ -36,19 +36,19 @@ unsigned char rd[10], wr[10];
 /***	SPIFLASH_Init
 **
 **	Parameters:
-**		
+**
 **
 **	Return Value:
-**		
+**
 **
 **	Description:
-**		This function initializes the hardware involved in the SPIFLASH module: 
+**		This function initializes the hardware involved in the SPIFLASH module:
 **      The following digital pins are configured as digital outputs (SPIFLASH_CE, SPIFLASH_SCK, SPIFLASH_SI).
 **      The following digital pins are configured as digital inputs (SPIFLASH_SO).
 **      The SPIFLASH_SI and SPIFLASH_SO are mapped over the SPI1 interface.
 **      The SPI1 module of PIC32 is configured to work at 1 Mhz, polarity 0 and edge 1.
-**      
-**          
+**
+**
 */
 void SPIFLASH_Init()
 {
@@ -69,44 +69,44 @@ void SPIFLASH_Init()
 **                  0 = Serial output data changes on transition from Idle clock state to active clock state (see CKP bit)
 **
 **	Return Value:
-**		
+**
 **
 **	Description:
 **		This function configures the SPI1 hardware interface of PIC32, according to the provided parameters.
 **      In order to compute the baud rate value, it uses the peripheral bus frequency definition (PB_FRQ, located in config.h)
-**      
-**          
+**
+**
 */
 void SPIFLASH_ConfigureSPI(unsigned int spiFreq, unsigned char pol, unsigned char edge)
 {
     // configures SPI1
     SPI1BRG = PB_FRQ / (2 * spiFreq) - 1;
-    SPI1CONbits.CKP = pol;    // SPI Clock Polarity
-    SPI1CONbits.CKE = edge;   // SPI Clock Edge  
-    SPI1CONbits.SMP = 0;      // SPI Data Input Sample Phase 
-    SPI1CONbits.MSTEN = 1;    // Master
-    SPI1CONbits.MODE16 = 0;   // 8 bit transfer
-    SPI1CONbits.MODE32 = 0;   // 8 bit transfer
-    SPI1CON2bits.AUDEN = 0;   // Audio protocol is disabled
-    SPI1CONbits.ON = 1;       // enable SPI
+    SPI1CONbits.CKP = pol;  // SPI Clock Polarity
+    SPI1CONbits.CKE = edge; // SPI Clock Edge
+    SPI1CONbits.SMP = 0;    // SPI Data Input Sample Phase
+    SPI1CONbits.MSTEN = 1;  // Master
+    SPI1CONbits.MODE16 = 0; // 8 bit transfer
+    SPI1CONbits.MODE32 = 0; // 8 bit transfer
+    SPI1CON2bits.AUDEN = 0; // Audio protocol is disabled
+    SPI1CONbits.ON = 1;     // enable SPI
 }
 
 /***	SPIFLASH_ConfigurePins
 **
 **	Parameters:
-**		
+**
 **
 **	Return Value:
-**		
+**
 **
 **	Description:
-**		This function configures the digital pins involved in the SPIFLASH module: 
+**		This function configures the digital pins involved in the SPIFLASH module:
 **      The following digital pins are configured as digital outputs: SPIFLASH_CE, SPIFLASH_SCK, SPIFLASH_SI
 **      The following digital pins are configured as digital inputs: SPIFLASH_SO.
 **      The SPIFLASH_SI and SPIFLASH_SO are mapped over the SPI1 interface.
 **      The function uses pin related definitions from config.h file.
-**      
-**          
+**
+**
 */
 void SPIFLASH_ConfigurePins()
 {
@@ -114,14 +114,13 @@ void SPIFLASH_ConfigurePins()
     tris_SPIFLASH_CE = 0;
     tris_SPIFLASH_SCK = 0;
     tris_SPIFLASH_SI = 0;
-    
+
     // Configure SPIFLASH signals as digital inputs.
     tris_SPIFLASH_SO = 1;
-    
-    // configure remapable pins
-    rp_SPIFLASH_SI = 0x08; // RPF2R = 1000 = SDO1 
-    rp_SPIFLASH_SO = 0x0F;// SDI1R = 1111 = RPF7
 
+    // configure remapable pins
+    rp_SPIFLASH_SI = 0x08; // RPF2R = 1000 = SDO1
+    rp_SPIFLASH_SO = 0x0F; // SDI1R = 1111 = RPF7
 }
 
 /***	SPIFLASH_RawTransferByte
@@ -133,18 +132,20 @@ void SPIFLASH_ConfigurePins()
 **		unsigned char       - the byte received over SPI
 **
 **	Description:
-**		This function implements basic byte transfer over SPI1. 
+**		This function implements basic byte transfer over SPI1.
 **      It transmits the parameter bVal and returns the received byte.
-**      This function does not handle Slave Select (SS) pin, 
+**      This function does not handle Slave Select (SS) pin,
 **      use SPIFLASH_TransferBytes for SPI transfer.
-**      
-**          
+**
+**
 */
 unsigned char SPIFLASH_RawTransferByte(unsigned char bVal)
 {
-    while(!SPI1STATbits.SPITBE);	// wait for TX buffer to be empty
+    while (!SPI1STATbits.SPITBE)
+        ; // wait for TX buffer to be empty
     SPI1BUF = bVal;
-    while(!SPI1STATbits.SPIRBF);	// wait for RX buffer to be empty
+    while (!SPI1STATbits.SPIRBF)
+        ; // wait for RX buffer to be empty
     return SPI1BUF;
 }
 
@@ -158,17 +159,17 @@ unsigned char SPIFLASH_RawTransferByte(unsigned char bVal)
 **	Return Value:
 **
 **	Description:
-**		This function implements transfer of a number of bytes over SPI1. 
+**		This function implements transfer of a number of bytes over SPI1.
 **      It transmits the bytes from pbWrData and receives the bytes in pbRdData.
 **      This function properly handles Slave Select (SS) pin.
-**      
-**          
+**
+**
 */
 void SPIFLASH_TransferBytes(unsigned char bytesNumber, unsigned char *pbRdData, unsigned char *pbWrData)
 {
     int i;
     lat_SPIFLASH_CE = 0; // Activate SS
-    for(i = 0; i< bytesNumber; i++)
+    for (i = 0; i < bytesNumber; i++)
     {
         pbRdData[i] = SPIFLASH_RawTransferByte(pbWrData[i]);
     }
@@ -183,10 +184,10 @@ void SPIFLASH_TransferBytes(unsigned char bytesNumber, unsigned char *pbRdData, 
 **      unsigned char   - the Device ID provided by Deep-Power-Down / Device ID command
 **
 **	Description:
-**		This function implements the Release from Deep-Power-Down / Device ID command. 
+**		This function implements the Release from Deep-Power-Down / Device ID command.
 **      The obtained the Device ID is returned.
-**      
-**          
+**
+**
 */
 unsigned char SPIFLASH_ReleasePowerDownGetDeviceID()
 {
@@ -202,15 +203,15 @@ unsigned char SPIFLASH_ReleasePowerDownGetDeviceID()
 /***	SPIFLASH_SendOneByteCmd
 **
 **	Parameters:
-**      unsigned char bCmd      - the command ID 
+**      unsigned char bCmd      - the command ID
 **
 **	Return Value:
 **
 **	Description:
-**		This function sends one byte command over SPI. 
+**		This function sends one byte command over SPI.
 **      It properly handles Slave Select (SS) pin and transfers the command ID.
-**      
-**          
+**
+**
 */
 void SPIFLASH_SendOneByteCmd(unsigned char bCmd)
 {
@@ -227,9 +228,9 @@ void SPIFLASH_SendOneByteCmd(unsigned char bCmd)
 **      unsigned char bCmd      - the Status Register
 **
 **	Description:
-**		This function reads the Status Register and returns it. 
-**      
-**          
+**		This function reads the Status Register and returns it.
+**
+**
 */
 unsigned char SPIFLASH_GetStatus()
 {
@@ -246,17 +247,18 @@ unsigned char SPIFLASH_GetStatus()
 **	Parameters:
 **
 **	Return Value:
-**      
+**
 **
 **	Description:
-**		This function reads the Status Register and waits until Busy flag is not set. 
-**      
-**          
+**		This function reads the Status Register and waits until Busy flag is not set.
+**
+**
 */
 void SPIFLASH_WaitUntilNoBusy()
 {
     unsigned char status;
-    while(SPIFLASH_GetStatus() & SPIFLASH_STATUS_BUSY);
+    while (SPIFLASH_GetStatus() & SPIFLASH_STATUS_BUSY)
+        ;
 }
 
 /***	SPIFLASH_WriteEnable
@@ -264,12 +266,12 @@ void SPIFLASH_WaitUntilNoBusy()
 **	Parameters:
 **
 **	Return Value:
-**      
+**
 **
 **	Description:
-**		This function calls the Write Enable command. 
-**      
-**          
+**		This function calls the Write Enable command.
+**
+**
 */
 void SPIFLASH_WriteEnable()
 {
@@ -282,12 +284,12 @@ void SPIFLASH_WriteEnable()
 **	Parameters:
 **
 **	Return Value:
-**      
+**
 **
 **	Description:
-**		This function calls the Write Disable command. 
-**      
-**          
+**		This function calls the Write Disable command.
+**
+**
 */
 void SPIFLASH_WriteDisable()
 {
@@ -295,20 +297,18 @@ void SPIFLASH_WriteDisable()
     SPIFLASH_WaitUntilNoBusy();
 }
 
-
-
 /***	SPIFLASH_Erase4k
 **
 **	Parameters:
 **          unsigned int addr   - the address where the sector starts
 **
 **	Return Value:
-**      
+**
 **
 **	Description:
 **		This functions performs a sector erase: erases the 4k sector starting at the address.
-**      
-**          
+**
+**
 */
 void SPIFLASH_Erase4k(unsigned int addr)
 {
@@ -328,12 +328,12 @@ void SPIFLASH_Erase4k(unsigned int addr)
 **          unsigned int addr   - the address where the sector starts
 **
 **	Return Value:
-**      
+**
 **
 **	Description:
 **		This functions performs a block erase: erases the 64k block starting at the address.
-**      
-**          
+**
+**
 */
 void SPIFLASH_Erase64k(unsigned int addr)
 {
@@ -350,15 +350,15 @@ void SPIFLASH_Erase64k(unsigned int addr)
 /***	SPIFLASH_EraseAll
 **
 **	Parameters:
-**         
+**
 **
 **	Return Value:
-**      
+**
 **
 **	Description:
 **		This functions performs a chip erase: erases all memory within the device.
-**      
-**          
+**
+**
 */
 void SPIFLASH_EraseAll()
 {
@@ -368,37 +368,36 @@ void SPIFLASH_EraseAll()
     SPIFLASH_WaitUntilNoBusy();
 }
 
-
 /***	SPIFLASH_ProgramPage
 **
 **	Parameters:
 **      unsigned int addr       - The memory address where data will be written
-**      unsigned char *pBuf     - Pointer to a buffer storing the bytes to be written. 
+**      unsigned char *pBuf     - Pointer to a buffer storing the bytes to be written.
 **      int len                 - Number of bytes to be written.
- **
+**
 **	Return Value:
-**      
+**
 **
 **	Description:
-**		This functions calls the Page Program command: 
-**      it allows from one byte to 256 bytes (a page) of data to be programmed 
+**		This functions calls the Page Program command:
+**      it allows from one byte to 256 bytes (a page) of data to be programmed
 **      at previously erased memory locations.
-**      
-**          
+**
+**
 */
 void SPIFLASH_ProgramPage(unsigned int addr, unsigned char *pBuf, unsigned int len)
 {
     int i;
     SPIFLASH_WaitUntilNoBusy();
     SPIFLASH_WriteEnable();
-    
+
     lat_SPIFLASH_CE = 0; // Activate SS
-    
+
     SPIFLASH_RawTransferByte(SPIFLASH_CMD_PROGRAMPAGE);
     SPIFLASH_RawTransferByte(addr >> 16);
     SPIFLASH_RawTransferByte(addr >> 8);
     SPIFLASH_RawTransferByte(addr & 0xFF);
-    for(i = 0; i< len; i++)
+    for (i = 0; i < len; i++)
     {
         SPIFLASH_RawTransferByte(pBuf[i]);
     }
@@ -410,29 +409,29 @@ void SPIFLASH_ProgramPage(unsigned int addr, unsigned char *pBuf, unsigned int l
 **
 **	Parameters:
 **      unsigned int addr       - The memory address fromm where the data will be read
-**      unsigned char *pBuf     - Pointer to a buffer storing the read bytes. 
+**      unsigned char *pBuf     - Pointer to a buffer storing the read bytes.
 **      int len                 - Number of bytes to be read.
- **
+**
 **	Return Value:
-**      
+**
 **
 **	Description:
 **		This functions calls the Read Data command:
-**      it allows one or more data bytes to be sequentially read from the memory. 
-**      
-**          
+**      it allows one or more data bytes to be sequentially read from the memory.
+**
+**
 */
 void SPIFLASH_Read(unsigned int addr, unsigned char *pBuf, unsigned int len)
 {
     int i;
-    
+
     lat_SPIFLASH_CE = 0; // Activate SS
-    
+
     SPIFLASH_RawTransferByte(SPIFLASH_CMD_READ);
     SPIFLASH_RawTransferByte(addr >> 16);
     SPIFLASH_RawTransferByte(addr >> 8);
     SPIFLASH_RawTransferByte(addr & 0xFF);
-    for(i = 0; i< len; i++)
+    for (i = 0; i < len; i++)
     {
         pBuf[i] = SPIFLASH_RawTransferByte(0);
     }
@@ -442,20 +441,61 @@ void SPIFLASH_Read(unsigned int addr, unsigned char *pBuf, unsigned int len)
 /***	SPIFLASH_Close
 **
 **	Parameters:
-** 
+**
 **
 **	Return Value:
-**      
+**
 **
 **	Description:
-**		This functions releases the hardware involved in SPIFLASH library: 
+**		This functions releases the hardware involved in SPIFLASH library:
 **      it turns off the SPI1 interface.
-**      
-**          
+**
+**
 */
 void SPIFLASH_Close()
 {
     SPI1CONbits.ON = 0; // disable SPI
+}
+
+void SPIFLASH_WriteValues(int page, int *buff)
+{
+    int i, j;
+    unsigned int add = 256 * page;
+    unsigned char tx_data[20];
+
+    for (i = 0; i < 5; i++)
+    {
+        tx_data[(i * 4) + 0] = (buff[i] & 0xFF000000) >> 24;
+        tx_data[(i * 4) + 1] = (buff[i] & 0x00FF0000) >> 16;
+        tx_data[(i * 4) + 2] = (buff[i] & 0x0000FF00) >> 8;
+        tx_data[(i * 4) + 3] = (buff[i] & 0x000000FF) >> 0;
+    }
+
+    SPIFLASH_ProgramPage(add, tx_data, 20);
+}
+
+void SPIFLASH_ReadValues(int page, int *buff)
+{
+    int i, j;
+    unsigned int add = 256 * page;
+    unsigned char tx_data[20];
+
+    buff[0] = 0;
+    buff[1] = 0;
+    buff[2] = 0;
+    buff[3] = 0;
+    buff[4] = 0;
+
+    SPIFLASH_Read(add, tx_data, 20);
+
+    for (i = 0; i < 5; i++)
+    {
+        buff[i] = 0;
+        buff[i] |= tx_data[(i * 4) + 0] << 24;
+        buff[i] |= tx_data[(i * 4) + 1] << 16;
+        buff[i] |= tx_data[(i * 4) + 2] << 8;
+        buff[i] |= tx_data[(i * 4) + 3] << 0;
+    }
 }
 
 /* *****************************************************************************
