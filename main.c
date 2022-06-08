@@ -26,6 +26,7 @@ void LCD_acl(int x, int y, int z, int module);
 void UART_SendFrame(int *src);
 void ACL_ReadAll(int *x, int *y, int *z);
 
+void pmod_build(int *tx_data, int *pmod_data);
 void int_to_hex_string(char *buff, int val, int len);
 void int_to_string(char *buff, int val);
 void get_min_max_avg(int *src, int *dest, int len);
@@ -87,7 +88,8 @@ void main()
     int acl_z[16] = {0};    // Z
     int acl_m[16] = {0};    // Module
     int pot_v[16] = {0};    // Potentiometer
-    int tx_data[256] = {0}; //
+    int tx_data[98] = {0}; //
+    int pmod_data[297] = {0};
     unsigned char init = 0;
     unsigned char ack = 0;
     unsigned char swt_old = 0;
@@ -98,16 +100,16 @@ void main()
 
     macro_enable_interrupts();
 
-    SPIFLASH_EraseAll(); // TODO uncomment
-    // select_date_time(&date_time);        // TODO uncomment
+    // SPIFLASH_EraseAll(); // TODO uncomment
+    //  select_date_time(&date_time);        // TODO uncomment
 
     // Main loop
     while (1)
     {
 
-        pmod_s(tx_data, &pmod_new);
-        // if(pmod_new == 1)
-        // pmod_new = 0;
+        //pmod_s(tx_data, &pmod_new);
+        //if (pmod_new == 1)
+            //pmod_new = 0;
 
         if (Flag_1s) // Flag d'interruption à chaque 1 ms
         {
@@ -172,20 +174,20 @@ void main()
             {
                 count_16s = 0;
 
-                // Retrieve data from flash
+                // Retrieve data from flash TODO FIX
                 /*for (i = 0; i < 16; i++)
                 {
-                    SPIFLASH_ReadValues(count_16s, buff);
-                    acl_x[X_OFFSET + i] = buff[0];
-                    acl_y[Y_OFFSET + i] = buff[1];
-                    acl_z[Z_OFFSET + i] = buff[2];
-                    acl_m[M_OFFSET + i] = buff[3];
-                    pot_v[P_OFFSET + i] = buff[4];
+                    SPIFLASH_ReadValues(i, buff);
+                    acl_x[i] = buff[0];
+                    acl_y[i] = buff[1];
+                    acl_z[i] = buff[2];
+                    acl_m[i] = buff[3];
+                    pot_v[i] = buff[4];
                 }*/
 
                 // Build frame
                 checksum = 0;
-                insert_data((0b0101 << 8) | (95), &tx_data[0], &checksum); // Oscillator + data length
+                insert_data((0b0101 << 8) | (95), &tx_data[0], &checksum); // 0101 + data length
                 insert_data(seconds, &tx_data[1], &checksum);              // Timestamp
                 add_bloc(acl_x, tx_data + X_OFFSET, &checksum);
                 add_bloc(acl_y, tx_data + Y_OFFSET, &checksum);
@@ -198,15 +200,43 @@ void main()
                 UART_SendFrame(tx_data);
 
                 // Set PMOD to send from frame
+                pmod_build(tx_data, pmod_data);
                 pmod_new = 1;
 
                 // Erase flash
-                // TODO
+                SPIFLASH_Erase4k(0);
             }
 
             count_1s++;
         }
     }
+}
+
+void pmod_build(int *tx_data, int *pmod_data)
+{
+    int i;
+
+    pmod_data[0] = (tx_data[0] & 0x00000F00) >> 8; // 0101
+    pmod_data[1] = (tx_data[0] & 0x000000F0) >> 4; // Length high
+    pmod_data[2] = (tx_data[0] & 0x0000000F) >> 0; // Length low
+
+    pmod_data[3] = (tx_data[1] & 0xF0000000) >> 28UL; // Timestamp
+    pmod_data[4] = (tx_data[1] & 0x0F000000) >> 24UL; // Timestamp
+    pmod_data[5] = (tx_data[1] & 0x00F00000) >> 20UL; // Timestamp
+    pmod_data[6] = (tx_data[1] & 0x000F0000) >> 16UL; // Timestamp
+    pmod_data[7] = (tx_data[1] & 0x0000F000) >> 12UL; // Timestamp
+    pmod_data[8] = (tx_data[1] & 0x00000F00) >> 8UL;  // Timestamp
+    pmod_data[9] = (tx_data[1] & 0x000000F0) >> 4UL;  // Timestamp
+    pmod_data[10] = (tx_data[1] & 0x0000000F) >> 0UL; // Timestamp
+
+    for (i = 0; i < 95; i++)
+    {
+        pmod_data[(i * 3) + 11] = (tx_data[i + 2] & 0x00000F00) >> 8;
+        pmod_data[(i * 3) + 12] = (tx_data[i + 2] & 0x000000F0) >> 4;
+        pmod_data[(i * 3) + 13] = (tx_data[i + 2] & 0x0000000F) >> 0;
+    }
+
+    pmod_data[296] = tx_data[C_OFFSET] & 0x0000000F;
 }
 
 void LCD_time(date_time_t *date_time)
@@ -327,24 +357,24 @@ void insert_data(int data, int *dest, int *checksum)
 {
     *dest = data;
 
-    *checksum ^= (*checksum & 0xF0000000) >> 28UL;
-    *checksum ^= (*checksum & 0x0F000000) >> 24UL;
-    *checksum ^= (*checksum & 0x00F00000) >> 20UL;
-    *checksum ^= (*checksum & 0x000F0000) >> 16UL;
-    *checksum ^= (*checksum & 0x0000F000) >> 12UL;
-    *checksum ^= (*checksum & 0x00000F00) >> 8UL;
-    *checksum ^= (*checksum & 0x000000F0) >> 4UL;
-    *checksum ^= (*checksum & 0x0000000F) >> 0UL;
+    *checksum ^= (data & 0xF0000000) >> 28UL;
+    *checksum ^= (data & 0x0F000000) >> 24UL;
+    *checksum ^= (data & 0x00F00000) >> 20UL;
+    *checksum ^= (data & 0x000F0000) >> 16UL;
+    *checksum ^= (data & 0x0000F000) >> 12UL;
+    *checksum ^= (data & 0x00000F00) >> 8UL;
+    *checksum ^= (data & 0x000000F0) >> 4UL;
+    *checksum ^= (data & 0x0000000F) >> 0UL;
 }
 
 void UART_SendFrame(int *src)
 {
     char buff[16] = {0};
-    unsigned char* txt1[5] = {"\nX ", "\nY ", "\nZ ", "\nMod ", "\nPot "};
-    unsigned char* txt2[3] = {"min : ", "max : ", "avg : "};
+    unsigned char *txt1[5] = {"\nX ", "\nY ", "\nZ ", "\nMod ", "\nPot "};
+    unsigned char *txt2[3] = {"min : ", "max : ", "avg : "};
     int i, j;
     int offsets[5] = {X_OFFSET, Y_OFFSET, Z_OFFSET, M_OFFSET, P_OFFSET};
-    
+
     UART_PutString("\n\n-----------------------");
     for (i = 0; i < 5; i++)
     {

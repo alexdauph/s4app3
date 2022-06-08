@@ -16,6 +16,7 @@
 module_s:			            # Étiquette de la fonction
     
     li $s1, 1			        # Toujours 1 pour faciliter des calculs
+    li $s2, -1				# Toujours -1 pour faciliter des calculs
     mthi $0                     # Init HI à 0
     mtlo $0                     # init LO à 0
     
@@ -49,6 +50,8 @@ module_s:			            # Étiquette de la fonction
         beq $t2, $0, end	    # Si la différence est nulle
         nop                     
         beq $t2, $s1, end       # Si la différence est 1
+        nop
+	beq $t2, $s2, end       # Si la différence est 1
         nop
         j loop                  # Retour au début de la boucle
         nop

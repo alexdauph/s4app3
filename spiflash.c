@@ -480,12 +480,6 @@ void SPIFLASH_ReadValues(int page, int *buff)
     unsigned int add = 256 * page;
     unsigned char tx_data[20];
 
-    buff[0] = 0;
-    buff[1] = 0;
-    buff[2] = 0;
-    buff[3] = 0;
-    buff[4] = 0;
-
     SPIFLASH_Read(add, tx_data, 20);
 
     for (i = 0; i < 5; i++)
