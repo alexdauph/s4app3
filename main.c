@@ -27,6 +27,7 @@ void UART_SendFrame(int *src);
 void ACL_ReadAll(int *x, int *y, int *z);
 
 void int_to_hex_string(char *buff, int val, int len);
+void int_to_string(char *buff, int val);
 void get_min_max_avg(int *src, int *dest, int len);
 void add_bloc(int *src, int *dest, int *checksum);
 void insert_data(int src, int *dest, int *checksum);
@@ -80,8 +81,7 @@ void main()
     int checksum = 0;
     int pmod_new = 0;
     int i = 0;
-    int buff[5] = {0};       // 
-    int buff2[5] = {0};
+    int buff[5] = {0};      //
     int acl_x[16] = {0};    // X
     int acl_y[16] = {0};    // Y
     int acl_z[16] = {0};    // Z
@@ -98,7 +98,7 @@ void main()
 
     macro_enable_interrupts();
 
-    SPIFLASH_EraseAll();                 // TODO uncomment
+    SPIFLASH_EraseAll(); // TODO uncomment
     // select_date_time(&date_time);        // TODO uncomment
 
     // Main loop
@@ -128,9 +128,6 @@ void main()
                 // Read accelerometer data
                 ACL_ReadAll(&acl_x[count_16s], &acl_y[count_16s], &acl_z[count_16s]);
                 acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
-                //acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
-                //acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
-                //acl_m[count_16s] = module_s(acl_x[count_16s], acl_y[count_16s], acl_z[count_16s]);
 
                 // Send to flash
                 buff[0] = acl_x[count_16s];
@@ -139,7 +136,6 @@ void main()
                 buff[3] = acl_m[count_16s];
                 buff[4] = pot_v[count_16s];
                 SPIFLASH_WriteValues(count_16s, buff);
-                SPIFLASH_ReadValues(count_16s, buff2);
 
                 // Toggle LED
                 LED_ToggleValue(0);
@@ -176,6 +172,17 @@ void main()
             {
                 count_16s = 0;
 
+                // Retrieve data from flash
+                /*for (i = 0; i < 16; i++)
+                {
+                    SPIFLASH_ReadValues(count_16s, buff);
+                    acl_x[X_OFFSET + i] = buff[0];
+                    acl_y[Y_OFFSET + i] = buff[1];
+                    acl_z[Z_OFFSET + i] = buff[2];
+                    acl_m[M_OFFSET + i] = buff[3];
+                    pot_v[P_OFFSET + i] = buff[4];
+                }*/
+
                 // Build frame
                 checksum = 0;
                 insert_data((0b0101 << 8) | (95), &tx_data[0], &checksum); // Oscillator + data length
@@ -192,6 +199,9 @@ void main()
 
                 // Set PMOD to send from frame
                 pmod_new = 1;
+
+                // Erase flash
+                // TODO
             }
 
             count_1s++;
@@ -211,8 +221,6 @@ void LCD_time(date_time_t *date_time)
 
 void LCD_acl(int x, int y, int z, int module)
 {
-    char buff[16] = {0};
-
     LCD_WriteStringAtPos("x=", 0, 0);
     LCD_WriteIntAtPos(x, 5, 0, 2, 0);
 
@@ -240,6 +248,24 @@ void int_to_hex_string(char *buff, int val, int len)
             buff[i] += ('A' - 10);
     }
     buff[i] = '\0';
+}
+
+void int_to_string(char *buff, int val)
+{
+    int i;
+
+    if (val < 0)
+    {
+        buff[0] = '-';
+        val *= -1;
+    }
+    else
+        buff[0] = ' ';
+
+    buff[1] = '0' + (val % 10000) / 1000;
+    buff[2] = '0' + (val % 1000) / 100;
+    buff[3] = '0' + (val % 100) / 10;
+    buff[4] = '0' + (val % 10) / 1;
 }
 
 void ACL_ReadAll(int *x, int *y, int *z)
@@ -314,28 +340,22 @@ void insert_data(int data, int *dest, int *checksum)
 void UART_SendFrame(int *src)
 {
     char buff[16] = {0};
-
-    int_to_hex_string(buff, (src[0] & 0x00000F00) >> 8, 1);
-    UART_PutString("\nOscillation : 0x");
-    UART_PutString(buff);
-
-    int_to_hex_string(buff, (src[0] & 0x000000FF) >> 0, 2);
-    UART_PutString("\nCount : 0x");
-    UART_PutString(buff);
-
-    int_to_hex_string(buff, (src[M_OFFSET + 16] & 0x00000FFF), 3);
-    UART_PutString("\nModule min : 0x");
-    UART_PutString(buff);
-
-    int_to_hex_string(buff, (src[M_OFFSET + 17] & 0x00000FFF), 3);
-    UART_PutString("\nModule max : 0x");
-    UART_PutString(buff);
-
-    int_to_hex_string(buff, (src[M_OFFSET + 18] & 0x00000FFF), 3);
-    UART_PutString("\nModule avg : 0x");
-    UART_PutString(buff);
-
-    int_to_hex_string(buff, (src[C_OFFSET] & 0x0000000F), 1);
-    UART_PutString("\nChecksum : 0x");
-    UART_PutString(buff);
+    unsigned char* txt1[5] = {"\nX ", "\nY ", "\nZ ", "\nMod ", "\nPot "};
+    unsigned char* txt2[3] = {"min : ", "max : ", "avg : "};
+    int i, j;
+    int offsets[5] = {X_OFFSET, Y_OFFSET, Z_OFFSET, M_OFFSET, P_OFFSET};
+    
+    UART_PutString("\n\n-----------------------");
+    for (i = 0; i < 5; i++)
+    {
+        for (j = 0; j < 3; j++)
+        {
+            int_to_string(buff, src[offsets[i] + 16 + j]);
+            UART_PutString(txt1[i]);
+            UART_PutString(txt2[j]);
+            UART_PutString(buff);
+        }
+        UART_PutString("\n");
+    }
+    UART_PutString("-----------------------");
 }
