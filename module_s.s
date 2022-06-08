@@ -51,7 +51,7 @@ module_s:			            # Étiquette de la fonction
         nop                     
         beq $t2, $s1, end       # Si la différence est 1
         nop
-	beq $t2, $s2, end       # Si la différence est 1
+	    beq $t2, $s2, end       # Si la différence est -1
         nop
         j loop                  # Retour au début de la boucle
         nop

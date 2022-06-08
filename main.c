@@ -33,7 +33,7 @@ void get_min_max_avg(int *src, int *dest, int len);
 void add_bloc(int *src, int *dest, int *checksum);
 void insert_data(int src, int *dest, int *checksum);
 
-extern void pmod_s(int *data, int *new);
+extern int pmod_s(int *data, int *new, int ack);
 extern long module_s(int x, int y, int z);
 
 void __ISR(_TIMER_1_VECTOR, IPL2AUTO) Timer1ISR(void)
@@ -75,12 +75,15 @@ void main()
     PMODS_InitPin(0, 3, 0, 0, 0); // initialisation du JA3 (RC4)) pour D2
     PMODS_InitPin(0, 4, 0, 0, 0); // initialisation du JA4 (RG6)) pour D3
     PMODS_InitPin(0, 7, 0, 0, 0); // initialisation du JA4 (RC3)) pour parite
-    PMODS_InitPin(0, 8, 1, 0, 0); // initialisation du JA4 (RC7)) pour ack
+    PMODS_InitPin(0, 8, 0, 0, 0); // initialisation du JA4 (RG7)) pour strobe
+    PMODS_SetValue(0, 8, 0);
 
     int count_1s = 0;
     int count_16s = 0;
     int checksum = 0;
     int pmod_new = 0;
+    int waiting = 0;
+    int btn = 0;
     int i = 0;
     int buff[5] = {0};      //
     int acl_x[16] = {0};    // X
@@ -94,7 +97,6 @@ void main()
     unsigned char ack = 0;
     unsigned char swt_old = 0;
     unsigned char swt_cur = 0;
-    unsigned char waiting = 0;
     unsigned int seconds = 0;
     date_time_t date_time = {0};
 
@@ -106,15 +108,15 @@ void main()
     // Main loop
     while (1)
     {
-
-        //pmod_s(tx_data, &pmod_new);
-        //if (pmod_new == 1)
-            //pmod_new = 0;
+        btn = BTN_GetValue('D');
+        waiting = pmod_s(pmod_data, &pmod_new, btn);
+        if (pmod_new == 1)
+            pmod_new = 0;
 
         if (Flag_1s) // Flag d'interruption à chaque 1 ms
         {
             Flag_1s = 0; // Reset flag
-
+   
             // Faire osciller la ligne ACK pour continuer à envoyer du data
             PMODS_SetValue(7, 8, ack);
             ack = !ack;
