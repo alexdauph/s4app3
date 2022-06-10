@@ -3,15 +3,17 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+            <file>file:/D:/School/S4/APP3/Labo2.X/pmods.c</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/lcd.c</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/main.c</file>
+            <file>file:/D:/School/S4/APP3/Labo2.X/pmod_s.s</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/nbproject/Makefile-impl.mk</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/date_time.c</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/swt.c</file>
-            <file>file:/D:/School/S4/APP3/Labo2.X/module_s.s</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/aic.c</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/date_time.h</file>
             <file>file:/D:/School/S4/APP3/Labo2.X/spiflash.c</file>
+            <file>file:/D:/School/S4/APP3/Labo2.X/uart.c</file>
         </group>
     </open-files>
 </project-private>

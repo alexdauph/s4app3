@@ -85,16 +85,15 @@ void main()
     int waiting = 0;
     int btn = 0;
     int i = 0;
-    int buff[5] = {0};      //
-    int acl_x[16] = {0};    // X
-    int acl_y[16] = {0};    // Y
-    int acl_z[16] = {0};    // Z
-    int acl_m[16] = {0};    // Module
-    int pot_v[16] = {0};    // Potentiometer
+    int buff[5] = {0};     //
+    int acl_x[16] = {0};   // X
+    int acl_y[16] = {0};   // Y
+    int acl_z[16] = {0};   // Z
+    int acl_m[16] = {0};   // Module
+    int pot_v[16] = {0};   // Potentiometer
     int tx_data[98] = {0}; //
     int pmod_data[297] = {0};
     unsigned char init = 0;
-    unsigned char ack = 0;
     unsigned char swt_old = 0;
     unsigned char swt_cur = 0;
     unsigned int seconds = 0;
@@ -102,8 +101,8 @@ void main()
 
     macro_enable_interrupts();
 
-    // SPIFLASH_EraseAll(); // TODO uncomment
-    //  select_date_time(&date_time);        // TODO uncomment
+    SPIFLASH_EraseAll();
+    select_date_time(&date_time);
 
     // Main loop
     while (1)
@@ -116,10 +115,6 @@ void main()
         if (Flag_1s) // Flag d'interruption à chaque 1 ms
         {
             Flag_1s = 0; // Reset flag
-   
-            // Faire osciller la ligne ACK pour continuer à envoyer du data
-            PMODS_SetValue(7, 8, ack);
-            ack = !ack;
 
             // Do every 1s
             if (count_1s >= 1000 && init == 0)
@@ -176,8 +171,10 @@ void main()
             {
                 count_16s = 0;
 
-                // Retrieve data from flash TODO FIX
-                /*for (i = 0; i < 16; i++)
+                int x, y, z, m, p;
+
+                // Retrieve data from flash
+                for (i = 0; i < 16; i++)
                 {
                     SPIFLASH_ReadValues(i, buff);
                     acl_x[i] = buff[0];
@@ -185,17 +182,17 @@ void main()
                     acl_z[i] = buff[2];
                     acl_m[i] = buff[3];
                     pot_v[i] = buff[4];
-                }*/
+                }
 
                 // Build frame
                 checksum = 0;
                 insert_data((0b0101 << 8) | (95), &tx_data[0], &checksum); // 0101 + data length
                 insert_data(seconds, &tx_data[1], &checksum);              // Timestamp
-                add_bloc(acl_x, tx_data + X_OFFSET, &checksum);
-                add_bloc(acl_y, tx_data + Y_OFFSET, &checksum);
-                add_bloc(acl_z, tx_data + Z_OFFSET, &checksum);
-                add_bloc(acl_m, tx_data + M_OFFSET, &checksum);
-                add_bloc(pot_v, tx_data + P_OFFSET, &checksum);
+                add_bloc(acl_x, tx_data + X_OFFSET, &checksum);            // ACL_X[16] + min, max, avg
+                add_bloc(acl_y, tx_data + Y_OFFSET, &checksum);            // ACL_Y[16] + min, max, avg
+                add_bloc(acl_z, tx_data + Z_OFFSET, &checksum);            // ACL_Z[16] + min, max, avg
+                add_bloc(acl_m, tx_data + M_OFFSET, &checksum);            // ACL_M[16] + min, max, avg
+                add_bloc(pot_v, tx_data + P_OFFSET, &checksum);            // POT_V[16] + min, max, avg
                 tx_data[C_OFFSET] = checksum;
 
                 // Send frame to UART
@@ -218,10 +215,9 @@ void pmod_build(int *tx_data, int *pmod_data)
 {
     int i;
 
-    pmod_data[0] = (tx_data[0] & 0x00000F00) >> 8; // 0101
-    pmod_data[1] = (tx_data[0] & 0x000000F0) >> 4; // Length high
-    pmod_data[2] = (tx_data[0] & 0x0000000F) >> 0; // Length low
-
+    pmod_data[0] = (tx_data[0] & 0x00000F00) >> 8;    // 0101
+    pmod_data[1] = (tx_data[0] & 0x000000F0) >> 4;    // Length high
+    pmod_data[2] = (tx_data[0] & 0x0000000F) >> 0;    // Length low
     pmod_data[3] = (tx_data[1] & 0xF0000000) >> 28UL; // Timestamp
     pmod_data[4] = (tx_data[1] & 0x0F000000) >> 24UL; // Timestamp
     pmod_data[5] = (tx_data[1] & 0x00F00000) >> 20UL; // Timestamp
